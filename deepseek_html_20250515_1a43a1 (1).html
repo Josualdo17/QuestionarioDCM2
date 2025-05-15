@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário TIS - Conhecimento de Produtos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            scroll-behavior: smooth; /* Adiciona rolagem suave para toda a página */
+        }
+        h1 {
+            color: #0066cc;
+            text-align: center;
+        }
+        .question-container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease; /* Suaviza a transição quando aparece */
+        }
+        .question {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #0066cc;
+        }
+        .solution-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            border-left: 4px solid #0066cc;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        button {
+            background-color: #0066cc;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0055aa;
+        }
+        .add-btn {
+            background-color: #28a745;
+            margin-bottom: 20px;
+        }
+        .add-btn:hover {
+            background-color: #218838;
+        }
+        .checkbox-option {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        .checkbox-option input {
+            margin-right: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        #export-btn {
+            background-color: #28a745;
+            margin-top: 20px;
+        }
+        #export-btn:hover {
+            background-color: #218838;
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .question-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Questionário TIS - Conhecimento de Produtos</h1>
+    
+    <div id="intro">
+        <p>Este questionário tem como objetivo avaliar o conhecimento da equipe de marketing e vendas sobre os produtos e soluções da TIS.</p>
+        <p>Por favor, responda com o máximo de detalhes possível.</p>
+        <button id="start-btn">Iniciar Questionário</button>
+    </div>
+    
+    <!-- Question 1 -->
+    <div id="q1-container" class="question-container hidden">
+        <div class="question">1. Quais os produtos e as soluções vendidas/desenvolvidas pela TIS, denomine-as?</div>
+        <div id="solutions-list">
+            <div class="solution-item">
+                <input type="text" class="solution-input" placeholder="Nome do produto/solução">
+            </div>
+        </div>
+        <button id="add-solution" class="add-btn">+ Adicionar outra solução</button>
+        <button id="next-q1">Avançar</button>
+    </div>
+    
+    <!-- Questions 2-7 (will be dynamically generated) -->
+    <div id="dynamic-questions"></div>
+    
+    <!-- Export section -->
+    <div id="export-container" class="question-container hidden">
+        <h2>Questionário Completo!</h2>
+        <p>Obrigado por responder ao questionário. Clique no botão abaixo para exportar suas respostas.</p>
+        <button id="export-btn">Exportar para Excel</button>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // Store all answers
+        const answers = {
+            solutions: [],
+            functionalities: [],
+            problemsSolved: [],
+            differentiators: [],
+            idealClients: [],
+            targetDepartments: [],
+            pricing: []
+        };
+        
+        // DOM elements
+        const introDiv = document.getElementById('intro');
+        const startBtn = document.getElementById('start-btn');
+        const q1Container = document.getElementById('q1-container');
+        const solutionsList = document.getElementById('solutions-list');
+        const addSolutionBtn = document.getElementById('add-solution');
+        const nextQ1Btn = document.getElementById('next-q1');
+        const dynamicQuestionsDiv = document.getElementById('dynamic-questions');
+        const exportContainer = document.getElementById('export-container');
+        const exportBtn = document.getElementById('export-btn');
+        
+        // Start questionnaire
+        startBtn.addEventListener('click', () => {
+            introDiv.classList.add('hidden');
+            q1Container.classList.remove('hidden');
+            // Rolagem suave para a primeira pergunta
+            setTimeout(() => {
+                q1Container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        });
+        
+        // Add more solution fields
+        addSolutionBtn.addEventListener('click', () => {
+            const newSolution = document.createElement('div');
+            newSolution.className = 'solution-item';
+            newSolution.innerHTML = `
+                <input type="text" class="solution-input" placeholder="Nome do produto/solução">
+            `;
+            solutionsList.appendChild(newSolution);
+            // Rolagem suave para o novo campo
+            setTimeout(() => {
+                newSolution.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        });
+        
+        // Process question 1 and show next questions
+        nextQ1Btn.addEventListener('click', () => {
+            const solutionInputs = document.querySelectorAll('.solution-input');
+            answers.solutions = Array.from(solutionInputs).map(input => input.value.trim()).filter(val => val);
+            
+            if (answers.solutions.length === 0) {
+                alert('Por favor, insira pelo menos um produto/solução.');
+                return;
+            }
+            
+            q1Container.classList.add('hidden');
+            generateDynamicQuestions();
+            
+            // Rolagem suave para a próxima pergunta
+            setTimeout(() => {
+                document.querySelector('.question-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        });
+        
+        // Generate questions 2-7 based on solutions provided
+        function generateDynamicQuestions() {
+            let html = '';
+            
+            // Question 2
+            html += `<div class="question-container">
+                <div class="question">2. Quais são as funcionalidades principais de cada produto e/ou solução?</div>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <textarea id="functionality-${index}" placeholder="Descreva as funcionalidades principais"></textarea>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q2">Avançar</button></div>`;
+            
+            // Question 3
+            html += `<div class="question-container hidden" id="q3-container">
+                <div class="question">3. Quais são os problemas que este produto e/ou solução resolve para o cliente?</div>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <textarea id="problem-${index}" placeholder="Descreva os problemas resolvidos"></textarea>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q3">Avançar</button></div>`;
+            
+            // Question 4
+            html += `<div class="question-container hidden" id="q4-container">
+                <div class="question">4. Quais os principais diferenciadores de cada solução?</div>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <textarea id="differentiator-${index}" placeholder="Descreva os diferenciadores"></textarea>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q4">Avançar</button></div>`;
+            
+            // Question 5
+            html += `<div class="question-container hidden" id="q5-container">
+                <div class="question">5. Quem são os clientes ideais (tipo de empresa, porte, sector)?</div>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <textarea id="client-${index}" placeholder="Descreva os clientes ideais"></textarea>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q5">Avançar</button></div>`;
+            
+            // Question 6
+            html += `<div class="question-container hidden" id="q6-container">
+                <div class="question">6. A quem dentro da empresa vende-se a solução?</div>
+                <p>Selecione uma das opções abaixo para cada solução:</p>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <div class="checkbox-option">
+                            <input type="radio" id="dept-commercial-${index}" name="department-${index}" value="Comercial">
+                            <label for="dept-commercial-${index}">Comercial</label>
+                        </div>
+                        <div class="checkbox-option">
+                            <input type="radio" id="dept-finance-${index}" name="department-${index}" value="Financeiro">
+                            <label for="dept-finance-${index}">Financeiro</label>
+                        </div>
+                        <div class="checkbox-option">
+                            <input type="radio" id="dept-admin-${index}" name="department-${index}" value="Administrador">
+                            <label for="dept-admin-${index}">Administrador</label>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q6">Avançar</button></div>`;
+            
+            // Question 7
+            html += `<div class="question-container hidden" id="q7-container">
+                <div class="question">7. Como é feita a precificação dos produtos?</div>
+                <p>Descreva para cada solução:</p>`;
+            
+            answers.solutions.forEach((solution, index) => {
+                html += `
+                    <div class="solution-item">
+                        <p><strong>${solution}</strong></p>
+                        <textarea id="pricing-${index}" placeholder="Descreva o modelo de precificação"></textarea>
+                    </div>
+                `;
+            });
+            
+            html += `<button id="next-q7">Finalizar</button></div>`;
+            
+            dynamicQuestionsDiv.innerHTML = html;
+            const firstQuestion = document.querySelector('.question-container');
+            firstQuestion.classList.remove('hidden');
+            
+            // Set up event listeners for dynamic buttons
+            setupDynamicButtons();
+        }
+        
+        function setupDynamicButtons() {
+            // Question 2 next button
+            document.getElementById('next-q2')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    answers.functionalities[index] = document.getElementById(`functionality-${index}`).value.trim();
+                });
+                
+                const currentContainer = document.querySelector('.question-container');
+                const nextContainer = document.querySelector('#q3-container');
+                
+                currentContainer.classList.add('hidden');
+                nextContainer.classList.remove('hidden');
+                
+                // Rolagem suave para a próxima pergunta
+                setTimeout(() => {
+                    nextContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            
+            // Question 3 next button
+            document.getElementById('next-q3')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    answers.problemsSolved[index] = document.getElementById(`problem-${index}`).value.trim();
+                });
+                
+                const currentContainer = document.querySelector('.question-container');
+                const nextContainer = document.querySelector('#q4-container');
+                
+                currentContainer.classList.add('hidden');
+                nextContainer.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    nextContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            
+            // Question 4 next button
+            document.getElementById('next-q4')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    answers.differentiators[index] = document.getElementById(`differentiator-${index}`).value.trim();
+                });
+                
+                const currentContainer = document.querySelector('.question-container');
+                const nextContainer = document.querySelector('#q5-container');
+                
+                currentContainer.classList.add('hidden');
+                nextContainer.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    nextContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            
+            // Question 5 next button
+            document.getElementById('next-q5')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    answers.idealClients[index] = document.getElementById(`client-${index}`).value.trim();
+                });
+                
+                const currentContainer = document.querySelector('.question-container');
+                const nextContainer = document.querySelector('#q6-container');
+                
+                currentContainer.classList.add('hidden');
+                nextContainer.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    nextContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            
+            // Question 6 next button
+            document.getElementById('next-q6')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    const selectedDept = document.querySelector(`input[name="department-${index}"]:checked`);
+                    answers.targetDepartments[index] = selectedDept ? selectedDept.value : '';
+                });
+                
+                // Validate that all solutions have a department selected
+                if (answers.targetDepartments.some(dept => !dept)) {
+                    alert('Por favor, selecione um departamento para cada solução.');
+                    return;
+                }
+                
+                const currentContainer = document.querySelector('.question-container');
+                const nextContainer = document.querySelector('#q7-container');
+                
+                currentContainer.classList.add('hidden');
+                nextContainer.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    nextContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+            
+            // Question 7 finish button
+            document.getElementById('next-q7')?.addEventListener('click', () => {
+                // Save answers
+                answers.solutions.forEach((_, index) => {
+                    answers.pricing[index] = document.getElementById(`pricing-${index}`).value.trim();
+                });
+                
+                dynamicQuestionsDiv.classList.add('hidden');
+                exportContainer.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    exportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+            });
+        }
+        
+        // Export to Excel
+        exportBtn.addEventListener('click', () => {
+            // Prepare data for export
+            const exportData = [];
+            
+            // Add headers
+            exportData.push(["Pergunta", "Resposta"]);
+            
+            // Process each solution with all questions
+            answers.solutions.forEach((solution, index) => {
+                exportData.push(["Produto/Solução", solution]);
+                exportData.push(["Funcionalidades principais", answers.functionalities[index]]);
+                exportData.push(["Problemas resolvidos", answers.problemsSolved[index]]);
+                exportData.push(["Diferenciadores", answers.differentiators[index]]);
+                exportData.push(["Clientes ideais", answers.idealClients[index]]);
+                exportData.push(["Departamento alvo", answers.targetDepartments[index]]);
+                exportData.push(["Modelo de precificação", answers.pricing[index]]);
+                exportData.push(["", ""]); // Empty row between solutions
+            });
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 30 }, // Question column
+                { wch: 70 }  // Answer column
+            ];
+            
+            XLSX.utils.book_append_sheet(wb, ws, "Respostas");
+            
+            // Export file
+            XLSX.writeFile(wb, "Questionario_TIS_Respostas.xlsx");
+        });
+    </script>
+</body>
+</html>
